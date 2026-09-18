@@ -1,0 +1,38 @@
+[
+  {
+    "id": "qwen-3-8b",
+    "name": "Qwen 3 8B Instruct",
+    "family": "Qwen",
+    "parameter_count_billion": 8.2,
+    "default_quantization": "Q4_K_M",
+    "context_length": 40960,
+    "layers": 32,
+    "heads": 32,
+    "kv_heads": 8,
+    "head_dim": 128
+  },
+  {
+    "id": "deepseek-r1-7b",
+    "name": "DeepSeek-R1 Distill 7B",
+    "family": "DeepSeek",
+    "parameter_count_billion": 7.6,
+    "default_quantization": "Q4_K_M",
+    "context_length": 32768,
+    "layers": 28,
+    "heads": 28,
+    "kv_heads": 4,
+    "head_dim": 128
+  },
+  {
+    "id": "llama-3.1-8b",
+    "name": "Llama 3.1 8B Instruct",
+    "family": "Llama",
+    "parameter_count_billion": 8.0,
+    "default_quantization": "Q4_K_M",
+    "context_length": 131072,
+    "layers": 32,
+    "heads": 32,
+    "kv_heads": 8,
+    "head_dim": 128
+  }
+]

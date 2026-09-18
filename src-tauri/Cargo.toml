@@ -1,0 +1,22 @@
+[package]
+name = "can-i-run-ai"
+version = "0.1.0"
+description = "Find out what AI models your computer can actually run"
+authors = ["Can I Run AI Contributors"]
+license = "MIT"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2.0.0", features = [] }
+
+[dependencies]
+tauri = { version = "2.0.0", features = [] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json"] }
+sysinfo = "0.30"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
