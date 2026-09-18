@@ -1,5 +1,7 @@
 # Can I Run AI?
 
+[English](README.md) | [简体中文](README_zh.md)
+
 > **Find out what AI models your computer can actually run.**
 
 Can I Run AI? is an open-source desktop application that analyzes your computer's hardware, evaluates local AI model compatibility, and optionally benchmarks real-world inference performance.
