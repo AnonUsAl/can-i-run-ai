@@ -1,77 +1,43 @@
-import { BenchmarkMetrics, HardwareSpecs, OllamaModelDetail } from '../types';
+import { invoke } from '@tauri-apps/api/core';
+import { BenchmarkMetrics, HardwareSpecs, HistoryEntry, ModelEvaluation, RuntimeKind, RuntimeStatus } from '../types';
 
-export const DEFAULT_HARDWARE: HardwareSpecs = {
-  platform: 'darwin',
-  arch: 'arm64',
-  osName: 'macOS',
-  osVersion: 'Darwin 24.0.0',
-  cpu: {
-    model: 'Apple M1 Pro',
-    cores: 10,
-    arch: 'arm64',
-    isAppleSilicon: true,
-  },
-  memory: {
-    totalBytes: 17179869184,
-    totalGb: 16.0,
-    freeBytes: 4294967296,
-    freeGb: 4.0,
-    isUnified: true,
-  },
-  gpu: {
-    model: 'Apple M1 Pro (16 Cores)',
-    isUnifiedMemory: true,
-    metalSupport: 'Metal 4',
-    vramGb: 16.0,
-  },
-  backends: ['Apple Metal', 'CPU inference'],
-};
-
+/**
+ * Thin wrappers over the Tauri IPC commands (src-tauri/src/main.rs).
+ * All errors propagate to the caller so the UI can show explicit
+ * loading / failure states instead of silently faking data.
+ */
 export async function fetchHardwareSpecs(): Promise<HardwareSpecs> {
-  try {
-    const res = await fetch('/api/hardware');
-    if (!res.ok) throw new Error(`Hardware check HTTP ${res.status}`);
-    const data = await res.json();
-    if (data.success && data.hardware) {
-      return data.hardware;
-    }
-    return DEFAULT_HARDWARE;
-  } catch (err) {
-    console.warn('Failed to fetch hardware specs, using detected default:', err);
-    return DEFAULT_HARDWARE;
-  }
+  return invoke<HardwareSpecs>('get_hardware_info');
 }
 
-export async function fetchOllamaModels(): Promise<{ isRunning: boolean; models: OllamaModelDetail[] }> {
-  try {
-    const res = await fetch('/api/ollama/models');
-    if (!res.ok) return { isRunning: false, models: [] };
-    const data = await res.json();
-    return {
-      isRunning: !!data.isRunning,
-      models: data.models || [],
-    };
-  } catch (err) {
-    return { isRunning: false, models: [] };
-  }
+/**
+ * Compatibility reports for every model at every supported
+ * quantization, computed by the Rust engine on this machine.
+ * Re-invoke whenever the context length changes.
+ */
+export async function evaluateModels(contextLength: number): Promise<ModelEvaluation[]> {
+  return invoke<ModelEvaluation[]>('evaluate_models', { contextLength });
 }
 
-export async function runOllamaBenchmark(modelName: string): Promise<BenchmarkMetrics> {
-  const res = await fetch('/api/ollama/benchmark', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ modelName }),
-  });
+/** Probe Ollama, LM Studio and llama.cpp. Offline runtimes are included. */
+export async function fetchRuntimes(): Promise<RuntimeStatus[]> {
+  return invoke<RuntimeStatus[]>('list_runtimes');
+}
 
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`基准测试失败 (${res.status}): ${errText}`);
-  }
+/** Warm-up + median-of-3 streaming benchmark on the chosen runtime. */
+export async function runRuntimeBenchmark(runtime: RuntimeKind, model: string): Promise<BenchmarkMetrics> {
+  return invoke<BenchmarkMetrics>('run_runtime_benchmark', { runtime, model });
+}
 
-  const data = await res.json();
-  if (!data.success || !data.benchmark) {
-    throw new Error(data.error || '基准测试未返回有效数据');
-  }
+/** Local SQLite history (app data dir) — newest first. */
+export async function fetchHistory(limit = 100): Promise<HistoryEntry[]> {
+  return invoke<HistoryEntry[]>('get_history', { limit });
+}
 
-  return data.benchmark;
+export async function deleteHistoryEntry(id: number): Promise<void> {
+  return invoke('delete_history_entry', { id });
+}
+
+export async function clearHistory(): Promise<void> {
+  return invoke('clear_history');
 }

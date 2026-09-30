@@ -16,7 +16,13 @@ serde_json = "1.0"
 tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.12", features = ["json"] }
 sysinfo = "0.30"
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.58", features = ["Win32_Graphics_Dxgi", "Win32_Graphics_Dxgi_Common"] }
+nvml-wrapper = { version = "0.10", optional = true }
 
 [features]
-default = ["custom-protocol"]
+default = ["custom-protocol", "nvml"]
 custom-protocol = ["tauri/custom-protocol"]
+nvml = ["dep:nvml-wrapper"]

@@ -122,7 +122,13 @@ export const HardwareCard: React.FC<HardwareCardProps> = ({ hardware, lang }) =>
               {hardware.gpu.model}
             </div>
             <div className="text-[11px] text-slate-400 mt-0.5">
-              {hardware.gpu.metalSupport || 'Metal'}
+              {[
+                hardware.gpu.metalSupport,
+                hardware.gpu.driverVersion ? `DRIVER ${hardware.gpu.driverVersion}` : null,
+                hardware.gpu.vramGb > 0 ? `${hardware.gpu.vramGb} GB VRAM` : null,
+              ]
+                .filter(Boolean)
+                .join(' · ') || 'Unknown'}
             </div>
           </div>
 

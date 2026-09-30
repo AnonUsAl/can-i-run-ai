@@ -1,13 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Layers } from 'lucide-react';
-import { AIModelDefinition, CompatibilityReport, HardwareSpecs, QuantizationType } from '../types';
-import { calculateCompatibility } from '../lib/compatibility';
+import { CompatibilityReport, ModelEvaluation, QuantizationType } from '../types';
 import { ModelCard } from './ModelCard';
 
 interface ModelExplorerProps {
-  models: AIModelDefinition[];
-  hardware: HardwareSpecs;
-  contextLength: number;
+  /** Model metadata + per-quantization reports from the Rust engine. */
+  models: ModelEvaluation[];
   installedOllamaModels: Set<string>;
   onRunBenchmark: (modelName: string) => void;
   benchmarkingModel: string | null;
@@ -16,8 +14,6 @@ interface ModelExplorerProps {
 
 export const ModelExplorer: React.FC<ModelExplorerProps> = ({
   models,
-  hardware,
-  contextLength,
   installedOllamaModels,
   onRunBenchmark,
   benchmarkingModel,
@@ -30,16 +26,16 @@ export const ModelExplorer: React.FC<ModelExplorerProps> = ({
 
   const isZh = lang === 'zh';
 
-  // Compute reports for all models
+  // Pick each model's report at its selected (or default) quantization.
   const modelReports = useMemo(() => {
     const map = new Map<string, CompatibilityReport>();
     models.forEach((m) => {
       const quant = modelQuantMap[m.id] || m.defaultQuantization;
-      const report = calculateCompatibility(m, quant, contextLength, hardware);
-      map.set(m.id, report);
+      const report = m.reports[quant];
+      if (report) map.set(m.id, report);
     });
     return map;
-  }, [models, modelQuantMap, contextLength, hardware]);
+  }, [models, modelQuantMap]);
 
   // Model families
   const families = ['ALL', 'Qwen', 'DeepSeek', 'Llama', 'Gemma', 'Mistral', 'Phi'];

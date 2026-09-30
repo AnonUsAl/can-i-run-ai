@@ -1,67 +1,122 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  DEFAULT_HARDWARE, 
+  clearHistory,
+  deleteHistoryEntry,
+  evaluateModels,
   fetchHardwareSpecs, 
-  fetchOllamaModels, 
-  runOllamaBenchmark 
+  fetchHistory,
+  fetchRuntimes, 
+  runRuntimeBenchmark 
 } from './lib/api';
-import { MODELS_DATABASE } from './data/models';
-import { BenchmarkMetrics, HardwareSpecs, OllamaModelDetail } from './types';
+import { BenchmarkMetrics, HardwareSpecs, HistoryEntry, ModelEvaluation, RuntimeKind } from './types';
 import { Header } from './components/Header';
 import { HardwareCard } from './components/HardwareCard';
 import { ContextSlider } from './components/ContextSlider';
 import { BenchmarkRunner } from './components/BenchmarkRunner';
+import { HistoryPanel } from './components/HistoryPanel';
 import { ModelExplorer } from './components/ModelExplorer';
 import { ShareCardModal } from './components/ShareCardModal';
 import { Sparkles, Compass } from 'lucide-react';
 
 export const App: React.FC = () => {
-  const [hardware, setHardware] = useState<HardwareSpecs>(DEFAULT_HARDWARE);
+  const [hardware, setHardware] = useState<HardwareSpecs | null>(null);
+  const [hardwareError, setHardwareError] = useState<string | null>(null);
+  const [evaluations, setEvaluations] = useState<ModelEvaluation[]>([]);
+  const [evaluationsError, setEvaluationsError] = useState<string | null>(null);
   const [contextLength, setContextLength] = useState<number>(8192);
-  const [ollamaOnline, setOllamaOnline] = useState<boolean>(false);
-  const [installedModels, setInstalledModels] = useState<OllamaModelDetail[]>([]);
-  const [selectedBenchmarkModel, setSelectedBenchmarkModel] = useState<string>('');
+  const [runtimes, setRuntimes] = useState<import('./types').RuntimeStatus[]>([]);
+  const [selectedRuntime, setSelectedRuntime] = useState<RuntimeKind>('ollama');
+  const [selectedModels, setSelectedModels] = useState<Record<string, string>>({});
   const [benchmarking, setBenchmarking] = useState<boolean>(false);
   const [benchmarkingModel, setBenchmarkingModel] = useState<string | null>(null);
   const [latestBenchmark, setLatestBenchmark] = useState<BenchmarkMetrics | null>(null);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState<boolean>(true);
   const [showShareModal, setShowShareModal] = useState<boolean>(false);
   const [lang, setLang] = useState<'zh' | 'en'>('zh');
 
   const isZh = lang === 'zh';
 
-  // Load hardware & ollama status
-  const loadHardwareAndOllama = async () => {
+  const loadHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      setHistory(await fetchHistory());
+    } catch (_) {
+      // History is optional; the panel shows an empty state on failure.
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  // Load hardware & runtime status
+  const loadSystemInfo = async () => {
     try {
       const hw = await fetchHardwareSpecs();
       setHardware(hw);
-    } catch (_) {}
+      setHardwareError(null);
+    } catch (err: any) {
+      setHardwareError(err?.toString() || 'Hardware detection failed');
+    }
 
     try {
-      const ollama = await fetchOllamaModels();
-      setOllamaOnline(ollama.isRunning);
-      setInstalledModels(ollama.models);
-      if (ollama.models.length > 0 && !selectedBenchmarkModel) {
-        setSelectedBenchmarkModel(ollama.models[0].name);
-      }
+      const rt = await fetchRuntimes();
+      setRuntimes(rt);
+      // Default to the first online runtime; remember per-runtime model picks.
+      setSelectedRuntime((prev) => {
+        const prevStatus = rt.find((r) => r.kind === prev);
+        if (prevStatus?.online) return prev;
+        return (rt.find((r) => r.online)?.kind ?? prev) as RuntimeKind;
+      });
+      setSelectedModels((prev) => {
+        const next = { ...prev };
+        for (const r of rt) {
+          if (r.models.length > 0 && !next[r.kind]) {
+            next[r.kind] = r.models[0].id;
+          }
+        }
+        return next;
+      });
     } catch (_) {}
   };
 
   useEffect(() => {
-    loadHardwareAndOllama();
+    loadSystemInfo();
+    loadHistory();
   }, []);
 
-  // Installed model names set for quick lookup
-  const installedOllamaNames = useMemo(() => {
-    return new Set(installedModels.map((m) => m.name));
-  }, [installedModels]);
+  // Compatibility reports come from the Rust engine and depend on
+  // hardware (fetched once) plus the context slider (re-run on change).
+  useEffect(() => {
+    let cancelled = false;
+    evaluateModels(contextLength)
+      .then((evals) => {
+        if (!cancelled) {
+          setEvaluations(evals);
+          setEvaluationsError(null);
+        }
+      })
+      .catch((err: any) => {
+        if (!cancelled) setEvaluationsError(err?.toString() || '兼容性计算失败');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [contextLength, hardware]);
 
-  // Run benchmark handler
-  const handleRunBenchmark = async (modelName: string) => {
+  // Installed Ollama model names for the "installed" badges in the explorer
+  const installedOllamaNames = useMemo(() => {
+    const ollama = runtimes.find((r) => r.kind === 'ollama');
+    return new Set((ollama?.models ?? []).map((m) => m.id));
+  }, [runtimes]);
+
+  // Run benchmark handler (used by the benchmark panel and model cards)
+  const handleRunBenchmark = async (runtime: RuntimeKind, modelName: string) => {
     setBenchmarking(true);
     setBenchmarkingModel(modelName);
     try {
-      const result = await runOllamaBenchmark(modelName);
+      const result = await runRuntimeBenchmark(runtime, modelName);
       setLatestBenchmark(result);
+      loadHistory(); // the run is persisted by the backend; refresh the panel
     } catch (err: any) {
       alert(err.message || '跑分测试遇到问题');
     } finally {
@@ -70,13 +125,74 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleDeleteHistory = async (id: number) => {
+    try {
+      await deleteHistoryEntry(id);
+      setHistory((prev) => prev.filter((e) => e.id !== id));
+    } catch (_) {}
+  };
+
+  const handleClearHistory = async () => {
+    try {
+      await clearHistory();
+      setHistory([]);
+    } catch (_) {}
+  };
+
+  // Hardware gate: no fake fallback — show an explicit state until
+  // the backend reports real hardware (retry button on failure).
+  if (!hardware) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header
+          hardware={null}
+          onlineRuntimeCount={0}
+          totalRuntimeCount={3}
+          onOpenShareModal={() => {}}
+          lang={lang}
+          setLang={setLang}
+        />
+        <main className="flex-1 flex items-center justify-center px-4">
+          <div className="glass-panel rounded-2xl p-8 max-w-md w-full text-center">
+            {hardwareError ? (
+              <>
+                <h2 className="text-base font-bold text-white mb-2">
+                  {isZh ? '硬件检测失败' : 'Hardware detection failed'}
+                </h2>
+                <p className="text-xs text-slate-400 font-mono break-words mb-4">
+                  {hardwareError}
+                </p>
+                <button
+                  onClick={loadSystemInfo}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-xs font-semibold text-white transition cursor-pointer"
+                >
+                  {isZh ? '重试检测' : 'Retry detection'}
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="w-8 h-8 mx-auto mb-3 border-2 border-blue-500/30 border-t-blue-400 rounded-full animate-spin"></div>
+                <h2 className="text-base font-bold text-white">
+                  {isZh ? '正在检测本机硬件…' : 'Detecting your hardware…'}
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  {isZh ? '所有检测均在本地完成，不会上传任何数据' : 'All detection runs locally. Nothing is uploaded.'}
+                </p>
+              </>
+            )}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col selection:bg-cyan-500/20 selection:text-cyan-200">
       {/* Top Navigation */}
       <Header
         hardware={hardware}
-        ollamaOnline={ollamaOnline}
-        installedCount={installedModels.length}
+        onlineRuntimeCount={runtimes.filter((r) => r.online).length}
+        totalRuntimeCount={runtimes.length}
         onOpenShareModal={() => setShowShareModal(true)}
         lang={lang}
         setLang={setLang}
@@ -105,8 +221,8 @@ export const App: React.FC = () => {
 
           <p className="text-sm md:text-base text-slate-400 max-w-2xl mx-auto mt-3">
             {isZh 
-              ? '摆脱盲猜。基于你的物理内存、GPU 显存、KV Cache 开销计算真实兼容性，并联动本地 Ollama 进行真实每秒 Token 速度测算。' 
-              : 'No more guessing. Analyze physical memory, KV Cache overhead, and run live tokens/second benchmarks.'}
+              ? '摆脱盲猜。基于物理内存、GPU 显存、KV Cache 开销计算真实兼容性，并联动本机 Ollama / LM Studio / llama.cpp 进行真实速度实测。' 
+              : 'No more guessing. Real compatibility from RAM, VRAM and KV Cache — live benchmarks via Ollama, LM Studio or llama.cpp.'}
           </p>
         </section>
 
@@ -127,14 +243,27 @@ export const App: React.FC = () => {
         {/* Section 3: Live Benchmark Runner */}
         <section>
           <BenchmarkRunner
-            ollamaOnline={ollamaOnline}
-            installedModels={installedModels}
-            selectedModel={selectedBenchmarkModel}
-            setSelectedModel={setSelectedBenchmarkModel}
+            runtimes={runtimes}
+            selectedRuntime={selectedRuntime}
+            setSelectedRuntime={setSelectedRuntime}
+            selectedModel={selectedModels[selectedRuntime] ?? ''}
+            setSelectedModel={(m) => setSelectedModels((prev) => ({ ...prev, [selectedRuntime]: m }))}
             onRunBenchmark={handleRunBenchmark}
             benchmarking={benchmarking}
+            benchmarkingModel={benchmarkingModel}
             latestBenchmark={latestBenchmark}
-            onRefreshOllama={loadHardwareAndOllama}
+            onRefresh={loadSystemInfo}
+            lang={lang}
+          />
+        </section>
+
+        {/* Section 3.5: Local Benchmark History */}
+        <section>
+          <HistoryPanel
+            entries={history}
+            loading={historyLoading}
+            onDelete={handleDeleteHistory}
+            onClear={handleClearHistory}
             lang={lang}
           />
         </section>
@@ -148,22 +277,24 @@ export const App: React.FC = () => {
                 <span>{isZh ? '主流开源模型兼容性评估库' : 'Model Compatibility Explorer'}</span>
               </h3>
               <p className="text-xs text-slate-400">
-                {isZh 
-                  ? '已为你实时测算不同尺寸与量化格式在当前机器上的适配等级与预估生成速度' 
-                  : 'Real-time memory calculations and speed estimates on your machine'}
+                {evaluationsError
+                  ? (isZh ? `计算失败：${evaluationsError}` : `Engine error: ${evaluationsError}`)
+                  : (isZh 
+                    ? '已为你实时测算不同尺寸与量化格式在当前机器上的适配等级与预估生成速度（由本地 Rust 引擎计算）' 
+                    : 'Real-time memory and speed estimates computed by the local Rust engine')}
               </p>
             </div>
           </div>
 
-          <ModelExplorer
-            models={MODELS_DATABASE}
-            hardware={hardware}
-            contextLength={contextLength}
-            installedOllamaModels={installedOllamaNames}
-            onRunBenchmark={handleRunBenchmark}
-            benchmarkingModel={benchmarkingModel}
-            lang={lang}
-          />
+          {evaluationsError ? null : (
+            <ModelExplorer
+              models={evaluations}
+              installedOllamaModels={installedOllamaNames}
+              onRunBenchmark={(modelName) => handleRunBenchmark('ollama', modelName)}
+              benchmarkingModel={benchmarkingModel}
+              lang={lang}
+            />
+          )}
         </section>
       </main>
 
