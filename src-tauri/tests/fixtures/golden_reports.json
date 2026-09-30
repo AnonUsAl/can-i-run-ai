@@ -1,0 +1,497 @@
+[
+  {
+    "machine": "mac-mini-8gb-m1",
+    "context_length": 8192,
+    "evaluations": [
+      {
+        "id": "qwen-2.5-0.5b",
+        "name": "qwen-2.5-0.5b",
+        "family": "Qwen",
+        "parameterCountBillion": 0.5,
+        "layers": 24,
+        "heads": 14,
+        "kvHeads": 2,
+        "headDim": 64,
+        "maxContextLength": 32768,
+        "supportedQuantizations": [
+          "Q4_K_M",
+          "Q8_0"
+        ],
+        "defaultQuantization": "Q4_K_M",
+        "ollamaName": "ollama:qwen-2.5-0.5b",
+        "description": "",
+        "recommendedUse": "",
+        "reports": {
+          "Q4_K_M": {
+            "status": "recommended",
+            "statusLabel": "🟢 推荐 (Recommended)",
+            "totalRequiredMemoryGb": 1.02,
+            "weightsMemoryGb": 0.26,
+            "kvCacheMemoryGb": 0.09,
+            "overheadMemoryGb": 0.46,
+            "buffersMemoryGb": 0.2,
+            "usableMemoryGb": 6.2,
+            "memoryUsagePercentage": 13,
+            "estimatedTokensPerSecond": 135.0,
+            "headline": "完美适配，极佳体验",
+            "advice": "显存与内存充足，模型可完全载入 GPU/统一内存，无性能瓶颈。",
+            "canOffloadToGpu": true,
+            "bottleneck": "none"
+          },
+          "Q8_0": {
+            "status": "recommended",
+            "statusLabel": "🟢 推荐 (Recommended)",
+            "totalRequiredMemoryGb": 1.25,
+            "weightsMemoryGb": 0.49,
+            "kvCacheMemoryGb": 0.09,
+            "overheadMemoryGb": 0.46,
+            "buffersMemoryGb": 0.2,
+            "usableMemoryGb": 6.2,
+            "memoryUsagePercentage": 16,
+            "estimatedTokensPerSecond": 71.5,
+            "headline": "完美适配，极佳体验",
+            "advice": "显存与内存充足，模型可完全载入 GPU/统一内存，无性能瓶颈。",
+            "canOffloadToGpu": true,
+            "bottleneck": "none"
+          }
+        }
+      },
+      {
+        "id": "qwen-3-8b",
+        "name": "qwen-3-8b",
+        "family": "Qwen",
+        "parameterCountBillion": 8.2,
+        "layers": 32,
+        "heads": 32,
+        "kvHeads": 8,
+        "headDim": 128,
+        "maxContextLength": 40960,
+        "supportedQuantizations": [
+          "Q4_K_M",
+          "Q8_0"
+        ],
+        "defaultQuantization": "Q4_K_M",
+        "ollamaName": "ollama:qwen-3-8b",
+        "description": "",
+        "recommendedUse": "",
+        "reports": {
+          "Q4_K_M": {
+            "status": "recommended",
+            "statusLabel": "🟢 推荐 (Recommended)",
+            "totalRequiredMemoryGb": 6.11,
+            "weightsMemoryGb": 4.3,
+            "kvCacheMemoryGb": 1.0,
+            "overheadMemoryGb": 0.61,
+            "buffersMemoryGb": 0.2,
+            "usableMemoryGb": 6.2,
+            "memoryUsagePercentage": 76,
+            "estimatedTokensPerSecond": 8.2,
+            "headline": "完美适配，极佳体验",
+            "advice": "显存与内存充足，模型可完全载入 GPU/统一内存，无性能瓶颈。",
+            "canOffloadToGpu": true,
+            "bottleneck": "none"
+          },
+          "Q8_0": {
+            "status": "not-recommended",
+            "statusLabel": "🔴 不推荐 (Not Recommended)",
+            "totalRequiredMemoryGb": 9.93,
+            "weightsMemoryGb": 8.11,
+            "kvCacheMemoryGb": 1.0,
+            "overheadMemoryGb": 0.61,
+            "buffersMemoryGb": 0.2,
+            "usableMemoryGb": 6.2,
+            "memoryUsagePercentage": 100,
+            "estimatedTokensPerSecond": 0.7,
+            "headline": "可能严重掉速或卡顿",
+            "advice": "显存不足，部分图层将被迫卸载到系统 Swap 交换区，速度可能暴跌至 1~3 tok/s。建议选择更高压缩量化版本（如 Q3_K_M）或更小尺寸模型。",
+            "canOffloadToGpu": true,
+            "bottleneck": "ram"
+          }
+        }
+      },
+      {
+        "id": "qwen-2.5-32b",
+        "name": "qwen-2.5-32b",
+        "family": "Qwen",
+        "parameterCountBillion": 32.5,
+        "layers": 64,
+        "heads": 40,
+        "kvHeads": 8,
+        "headDim": 128,
+        "maxContextLength": 32768,
+        "supportedQuantizations": [
+          "Q4_K_M",
+          "Q8_0"
+        ],
+        "defaultQuantization": "Q4_K_M",
+        "ollamaName": "ollama:qwen-2.5-32b",
+        "description": "",
+        "recommendedUse": "",
+        "reports": {
+          "Q4_K_M": {
+            "status": "incompatible",
+            "statusLabel": "⚫ 不兼容 (Incompatible)",
+            "totalRequiredMemoryGb": 20.33,
+            "weightsMemoryGb": 17.03,
+            "kvCacheMemoryGb": 2.0,
+            "overheadMemoryGb": 1.1,
+            "buffersMemoryGb": 0.2,
+            "usableMemoryGb": 6.2,
+            "memoryUsagePercentage": 100,
+            "estimatedTokensPerSecond": 0.0,
+            "headline": "硬件资源不足以运行",
+            "advice": "所需内存严重超过当前机器物理内存总和，强行启动极易导致 OOM 崩溃或系统严重假死。",
+            "canOffloadToGpu": true,
+            "bottleneck": "ram"
+          },
+          "Q8_0": {
+            "status": "incompatible",
+            "statusLabel": "⚫ 不兼容 (Incompatible)",
+            "totalRequiredMemoryGb": 35.46,
+            "weightsMemoryGb": 32.16,
+            "kvCacheMemoryGb": 2.0,
+            "overheadMemoryGb": 1.1,
+            "buffersMemoryGb": 0.2,
+            "usableMemoryGb": 6.2,
+            "memoryUsagePercentage": 100,
+            "estimatedTokensPerSecond": 0.0,
+            "headline": "硬件资源不足以运行",
+            "advice": "所需内存严重超过当前机器物理内存总和，强行启动极易导致 OOM 崩溃或系统严重假死。",
+            "canOffloadToGpu": true,
+            "bottleneck": "ram"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "machine": "m1-pro-16gb",
+    "context_length": 8192,
+    "evaluations": [
+      {
+        "id": "qwen-2.5-0.5b",
+        "name": "qwen-2.5-0.5b",
+        "family": "Qwen",
+        "parameterCountBillion": 0.5,
+        "layers": 24,
+        "heads": 14,
+        "kvHeads": 2,
+        "headDim": 64,
+        "maxContextLength": 32768,
+        "supportedQuantizations": [
+          "Q4_K_M",
+          "Q8_0"
+        ],
+        "defaultQuantization": "Q4_K_M",
+        "ollamaName": "ollama:qwen-2.5-0.5b",
+        "description": "",
+        "recommendedUse": "",
+        "reports": {
+          "Q4_K_M": {
+            "status": "recommended",
+            "statusLabel": "🟢 推荐 (Recommended)",
+            "totalRequiredMemoryGb": 1.02,
+            "weightsMemoryGb": 0.26,
+            "kvCacheMemoryGb": 0.09,
+            "overheadMemoryGb": 0.46,
+            "buffersMemoryGb": 0.2,
+            "usableMemoryGb": 12.5,
+            "memoryUsagePercentage": 6,
+            "estimatedTokensPerSecond": 397.0,
+            "headline": "完美适配，极佳体验",
+            "advice": "显存与内存充足，模型可完全载入 GPU/统一内存，无性能瓶颈。",
+            "canOffloadToGpu": true,
+            "bottleneck": "none"
+          },
+          "Q8_0": {
+            "status": "recommended",
+            "statusLabel": "🟢 推荐 (Recommended)",
+            "totalRequiredMemoryGb": 1.25,
+            "weightsMemoryGb": 0.49,
+            "kvCacheMemoryGb": 0.09,
+            "overheadMemoryGb": 0.46,
+            "buffersMemoryGb": 0.2,
+            "usableMemoryGb": 12.5,
+            "memoryUsagePercentage": 8,
+            "estimatedTokensPerSecond": 210.2,
+            "headline": "完美适配，极佳体验",
+            "advice": "显存与内存充足，模型可完全载入 GPU/统一内存，无性能瓶颈。",
+            "canOffloadToGpu": true,
+            "bottleneck": "none"
+          }
+        }
+      },
+      {
+        "id": "qwen-3-8b",
+        "name": "qwen-3-8b",
+        "family": "Qwen",
+        "parameterCountBillion": 8.2,
+        "layers": 32,
+        "heads": 32,
+        "kvHeads": 8,
+        "headDim": 128,
+        "maxContextLength": 40960,
+        "supportedQuantizations": [
+          "Q4_K_M",
+          "Q8_0"
+        ],
+        "defaultQuantization": "Q4_K_M",
+        "ollamaName": "ollama:qwen-3-8b",
+        "description": "",
+        "recommendedUse": "",
+        "reports": {
+          "Q4_K_M": {
+            "status": "recommended",
+            "statusLabel": "🟢 推荐 (Recommended)",
+            "totalRequiredMemoryGb": 6.11,
+            "weightsMemoryGb": 4.3,
+            "kvCacheMemoryGb": 1.0,
+            "overheadMemoryGb": 0.61,
+            "buffersMemoryGb": 0.2,
+            "usableMemoryGb": 12.5,
+            "memoryUsagePercentage": 38,
+            "estimatedTokensPerSecond": 24.2,
+            "headline": "完美适配，极佳体验",
+            "advice": "显存与内存充足，模型可完全载入 GPU/统一内存，无性能瓶颈。",
+            "canOffloadToGpu": true,
+            "bottleneck": "none"
+          },
+          "Q8_0": {
+            "status": "recommended",
+            "statusLabel": "🟢 推荐 (Recommended)",
+            "totalRequiredMemoryGb": 9.93,
+            "weightsMemoryGb": 8.11,
+            "kvCacheMemoryGb": 1.0,
+            "overheadMemoryGb": 0.61,
+            "buffersMemoryGb": 0.2,
+            "usableMemoryGb": 12.5,
+            "memoryUsagePercentage": 62,
+            "estimatedTokensPerSecond": 12.8,
+            "headline": "完美适配，极佳体验",
+            "advice": "显存与内存充足，模型可完全载入 GPU/统一内存，无性能瓶颈。",
+            "canOffloadToGpu": true,
+            "bottleneck": "none"
+          }
+        }
+      },
+      {
+        "id": "qwen-2.5-32b",
+        "name": "qwen-2.5-32b",
+        "family": "Qwen",
+        "parameterCountBillion": 32.5,
+        "layers": 64,
+        "heads": 40,
+        "kvHeads": 8,
+        "headDim": 128,
+        "maxContextLength": 32768,
+        "supportedQuantizations": [
+          "Q4_K_M",
+          "Q8_0"
+        ],
+        "defaultQuantization": "Q4_K_M",
+        "ollamaName": "ollama:qwen-2.5-32b",
+        "description": "",
+        "recommendedUse": "",
+        "reports": {
+          "Q4_K_M": {
+            "status": "not-recommended",
+            "statusLabel": "🔴 不推荐 (Not Recommended)",
+            "totalRequiredMemoryGb": 20.33,
+            "weightsMemoryGb": 17.03,
+            "kvCacheMemoryGb": 2.0,
+            "overheadMemoryGb": 1.1,
+            "buffersMemoryGb": 0.2,
+            "usableMemoryGb": 12.5,
+            "memoryUsagePercentage": 100,
+            "estimatedTokensPerSecond": 0.9,
+            "headline": "可能严重掉速或卡顿",
+            "advice": "显存不足，部分图层将被迫卸载到系统 Swap 交换区，速度可能暴跌至 1~3 tok/s。建议选择更高压缩量化版本（如 Q3_K_M）或更小尺寸模型。",
+            "canOffloadToGpu": true,
+            "bottleneck": "ram"
+          },
+          "Q8_0": {
+            "status": "incompatible",
+            "statusLabel": "⚫ 不兼容 (Incompatible)",
+            "totalRequiredMemoryGb": 35.46,
+            "weightsMemoryGb": 32.16,
+            "kvCacheMemoryGb": 2.0,
+            "overheadMemoryGb": 1.1,
+            "buffersMemoryGb": 0.2,
+            "usableMemoryGb": 12.5,
+            "memoryUsagePercentage": 100,
+            "estimatedTokensPerSecond": 0.0,
+            "headline": "硬件资源不足以运行",
+            "advice": "所需内存严重超过当前机器物理内存总和，强行启动极易导致 OOM 崩溃或系统严重假死。",
+            "canOffloadToGpu": true,
+            "bottleneck": "ram"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "machine": "rtx-4070-32gb",
+    "context_length": 8192,
+    "evaluations": [
+      {
+        "id": "qwen-2.5-0.5b",
+        "name": "qwen-2.5-0.5b",
+        "family": "Qwen",
+        "parameterCountBillion": 0.5,
+        "layers": 24,
+        "heads": 14,
+        "kvHeads": 2,
+        "headDim": 64,
+        "maxContextLength": 32768,
+        "supportedQuantizations": [
+          "Q4_K_M",
+          "Q8_0"
+        ],
+        "defaultQuantization": "Q4_K_M",
+        "ollamaName": "ollama:qwen-2.5-0.5b",
+        "description": "",
+        "recommendedUse": "",
+        "reports": {
+          "Q4_K_M": {
+            "status": "recommended",
+            "statusLabel": "🟢 推荐 (Recommended)",
+            "totalRequiredMemoryGb": 1.02,
+            "weightsMemoryGb": 0.26,
+            "kvCacheMemoryGb": 0.09,
+            "overheadMemoryGb": 0.46,
+            "buffersMemoryGb": 0.2,
+            "usableMemoryGb": 21.6,
+            "memoryUsagePercentage": 3,
+            "estimatedTokensPerSecond": 1000.6,
+            "headline": "完美适配，极佳体验",
+            "advice": "显存与内存充足，模型可完全载入 GPU/统一内存，无性能瓶颈。",
+            "canOffloadToGpu": true,
+            "bottleneck": "none"
+          },
+          "Q8_0": {
+            "status": "recommended",
+            "statusLabel": "🟢 推荐 (Recommended)",
+            "totalRequiredMemoryGb": 1.25,
+            "weightsMemoryGb": 0.49,
+            "kvCacheMemoryGb": 0.09,
+            "overheadMemoryGb": 0.46,
+            "buffersMemoryGb": 0.2,
+            "usableMemoryGb": 21.6,
+            "memoryUsagePercentage": 4,
+            "estimatedTokensPerSecond": 529.7,
+            "headline": "完美适配，极佳体验",
+            "advice": "显存与内存充足，模型可完全载入 GPU/统一内存，无性能瓶颈。",
+            "canOffloadToGpu": true,
+            "bottleneck": "none"
+          }
+        }
+      },
+      {
+        "id": "qwen-3-8b",
+        "name": "qwen-3-8b",
+        "family": "Qwen",
+        "parameterCountBillion": 8.2,
+        "layers": 32,
+        "heads": 32,
+        "kvHeads": 8,
+        "headDim": 128,
+        "maxContextLength": 40960,
+        "supportedQuantizations": [
+          "Q4_K_M",
+          "Q8_0"
+        ],
+        "defaultQuantization": "Q4_K_M",
+        "ollamaName": "ollama:qwen-3-8b",
+        "description": "",
+        "recommendedUse": "",
+        "reports": {
+          "Q4_K_M": {
+            "status": "recommended",
+            "statusLabel": "🟢 推荐 (Recommended)",
+            "totalRequiredMemoryGb": 6.11,
+            "weightsMemoryGb": 4.3,
+            "kvCacheMemoryGb": 1.0,
+            "overheadMemoryGb": 0.61,
+            "buffersMemoryGb": 0.2,
+            "usableMemoryGb": 21.6,
+            "memoryUsagePercentage": 19,
+            "estimatedTokensPerSecond": 61.0,
+            "headline": "完美适配，极佳体验",
+            "advice": "显存与内存充足，模型可完全载入 GPU/统一内存，无性能瓶颈。",
+            "canOffloadToGpu": true,
+            "bottleneck": "none"
+          },
+          "Q8_0": {
+            "status": "recommended",
+            "statusLabel": "🟢 推荐 (Recommended)",
+            "totalRequiredMemoryGb": 9.93,
+            "weightsMemoryGb": 8.11,
+            "kvCacheMemoryGb": 1.0,
+            "overheadMemoryGb": 0.61,
+            "buffersMemoryGb": 0.2,
+            "usableMemoryGb": 21.6,
+            "memoryUsagePercentage": 31,
+            "estimatedTokensPerSecond": 32.3,
+            "headline": "完美适配，极佳体验",
+            "advice": "显存与内存充足，模型可完全载入 GPU/统一内存，无性能瓶颈。",
+            "canOffloadToGpu": true,
+            "bottleneck": "none"
+          }
+        }
+      },
+      {
+        "id": "qwen-2.5-32b",
+        "name": "qwen-2.5-32b",
+        "family": "Qwen",
+        "parameterCountBillion": 32.5,
+        "layers": 64,
+        "heads": 40,
+        "kvHeads": 8,
+        "headDim": 128,
+        "maxContextLength": 32768,
+        "supportedQuantizations": [
+          "Q4_K_M",
+          "Q8_0"
+        ],
+        "defaultQuantization": "Q4_K_M",
+        "ollamaName": "ollama:qwen-2.5-32b",
+        "description": "",
+        "recommendedUse": "",
+        "reports": {
+          "Q4_K_M": {
+            "status": "recommended",
+            "statusLabel": "🟢 推荐 (Recommended)",
+            "totalRequiredMemoryGb": 20.33,
+            "weightsMemoryGb": 17.03,
+            "kvCacheMemoryGb": 2.0,
+            "overheadMemoryGb": 1.1,
+            "buffersMemoryGb": 0.2,
+            "usableMemoryGb": 21.6,
+            "memoryUsagePercentage": 64,
+            "estimatedTokensPerSecond": 15.4,
+            "headline": "完美适配，极佳体验",
+            "advice": "显存与内存充足，模型可完全载入 GPU/统一内存，无性能瓶颈。",
+            "canOffloadToGpu": false,
+            "bottleneck": "none"
+          },
+          "Q8_0": {
+            "status": "not-recommended",
+            "statusLabel": "🔴 不推荐 (Not Recommended)",
+            "totalRequiredMemoryGb": 35.46,
+            "weightsMemoryGb": 32.16,
+            "kvCacheMemoryGb": 2.0,
+            "overheadMemoryGb": 1.1,
+            "buffersMemoryGb": 0.2,
+            "usableMemoryGb": 21.6,
+            "memoryUsagePercentage": 100,
+            "estimatedTokensPerSecond": 1.3,
+            "headline": "可能严重掉速或卡顿",
+            "advice": "显存不足，部分图层将被迫卸载到系统 Swap 交换区，速度可能暴跌至 1~3 tok/s。建议选择更高压缩量化版本（如 Q3_K_M）或更小尺寸模型。",
+            "canOffloadToGpu": false,
+            "bottleneck": "vram"
+          }
+        }
+      }
+    ]
+  }
+]

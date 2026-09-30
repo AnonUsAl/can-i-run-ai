@@ -1,29 +1,39 @@
 import React, { useRef, useState } from 'react';
-import { X, Copy, Check, Sparkles } from 'lucide-react';
-import { BenchmarkMetrics, HardwareSpecs } from '../types';
+import { toPng } from 'html-to-image';
+import { X, Copy, Check, Sparkles, Image as ImageIcon, AlertCircle } from 'lucide-react';
+import { BenchmarkMetrics, HardwareSpecs, HistoryEntry } from '../types';
+import { saveExportFile } from '../lib/api';
 
 interface ShareCardModalProps {
   isOpen: boolean;
   onClose: () => void;
   hardware: HardwareSpecs;
   latestBenchmark: BenchmarkMetrics | null;
+  history: HistoryEntry[];
   lang: 'zh' | 'en';
 }
+
+type ExportState = { kind: 'idle' } | { kind: 'busy' } | { kind: 'ok'; path: string } | { kind: 'error'; message: string };
 
 export const ShareCardModal: React.FC<ShareCardModalProps> = ({
   isOpen,
   onClose,
   hardware,
   latestBenchmark,
+  history,
   lang,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [exportState, setExportState] = useState<ExportState>({ kind: 'idle' });
   const cardRef = useRef<HTMLDivElement>(null);
   const isZh = lang === 'zh';
 
   if (!isOpen) return null;
 
-  // Composite AI Score
+  // Real measurements only — the card must never show invented numbers.
+  const realRuns: HistoryEntry[] = history.slice(0, 3);
+
+  // Composite AI Score (estimated from hardware + measured speeds)
   const ramScore = hardware.memory.totalGb * 22;
   const chipScore = hardware.cpu.isAppleSilicon ? 320 : 180;
   const benchmarkBonus = latestBenchmark ? Math.round(latestBenchmark.generationTokPerSec * 12) : 180;
@@ -36,7 +46,9 @@ export const ShareCardModal: React.FC<ShareCardModalProps> = ({
       `🧠 内存规格: ${hardware.memory.totalGb} GB ${hardware.memory.isUnified ? '统一内存' : 'RAM'}\n` +
       `⚡ 图形加速: ${hardware.gpu.model} · ${hardware.gpu.metalSupport || 'Metal'}\n` +
       `🏆 AI SCORE: ${aiScore} 分\n\n` +
-      (latestBenchmark ? `实测速度: ${latestBenchmark.model} -> ${latestBenchmark.generationTokPerSec} tok/s\n` : `测试推荐: Qwen3 8B -> 18.4 tok/s\n`) +
+      (realRuns.length > 0
+        ? realRuns.map((r) => `实测: ${r.model} → ${r.generationTokPerSec} tok/s`).join('\n') + '\n'
+        : `（尚无实测数据 — 运行一次基准测试后这里会显示真实成绩）\n`) +
       `\n🔗 测测你的电脑能跑什么模型: https://github.com/AnonUsAl/can-i-run-ai`;
 
     try {
@@ -44,6 +56,24 @@ export const ShareCardModal: React.FC<ShareCardModalProps> = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (_) {}
+  };
+
+  // Render the card to PNG and persist it under the app-data exports dir.
+  const handleExportPng = async () => {
+    if (!cardRef.current) return;
+    setExportState({ kind: 'busy' });
+    try {
+      const dataUrl = await toPng(cardRef.current, {
+        pixelRatio: 2,
+        backgroundColor: '#020617',
+      });
+      const base64 = dataUrl.split(',')[1] ?? '';
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const path = await saveExportFile(`share-card-${stamp}.png`, base64);
+      setExportState({ kind: 'ok', path });
+    } catch (err: any) {
+      setExportState({ kind: 'error', message: err?.toString() || 'export failed' });
+    }
   };
 
   return (
@@ -106,29 +136,21 @@ export const ShareCardModal: React.FC<ShareCardModalProps> = ({
             </div>
           </div>
 
-          {/* Sample Model Speeds */}
+          {/* Measured speeds — real history entries only */}
           <div className="py-3 border-t border-slate-800/80 space-y-1.5 font-mono text-xs">
-            {latestBenchmark ? (
-              <div className="flex justify-between items-center text-slate-200">
-                <span className="truncate max-w-[170px]">{latestBenchmark.model.split(':')[0]}</span>
-                <span className="font-bold text-cyan-400">{latestBenchmark.generationTokPerSec} tok/s</span>
-              </div>
+            {realRuns.length > 0 ? (
+              realRuns.map((r) => (
+                <div key={r.id} className="flex justify-between items-center text-slate-200">
+                  <span className="truncate max-w-[170px]">{r.model.split(':')[0]}</span>
+                  <span className="font-bold text-cyan-400">{r.generationTokPerSec} tok/s</span>
+                </div>
+              ))
             ) : (
-              <>
-                <div className="flex justify-between items-center text-slate-300">
-                  <span>Qwen3 8B</span>
-                  <span className="font-bold text-cyan-400">18.4 tok/s</span>
-                </div>
-                <div className="flex justify-between items-center text-slate-300">
-                  <span>Gemma 4B</span>
-                  <span className="font-bold text-emerald-400">25.1 tok/s</span>
-                </div>
-              </>
+              <div className="flex items-center justify-center space-x-1.5 text-slate-500 text-[11px] py-1">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span>{isZh ? '暂无实测数据 — 先跑一次基准测试' : 'No measured runs yet — run a benchmark first'}</span>
+              </div>
             )}
-            <div className="flex justify-between items-center text-slate-400 text-[11px]">
-              <span>DeepSeek-R1 7B</span>
-              <span className="text-slate-400 font-bold">~17.8 tok/s</span>
-            </div>
           </div>
 
           {/* Card Footer */}
@@ -138,8 +160,20 @@ export const ShareCardModal: React.FC<ShareCardModalProps> = ({
           </div>
         </div>
 
+        {/* Export status */}
+        {exportState.kind === 'ok' && (
+          <p className="mt-2 text-[11px] text-emerald-400 font-mono break-all text-center">
+            ✓ {isZh ? '已保存到' : 'saved to'} {exportState.path}
+          </p>
+        )}
+        {exportState.kind === 'error' && (
+          <p className="mt-2 text-[11px] text-rose-400 font-mono break-all text-center">
+            {exportState.message}
+          </p>
+        )}
+
         {/* Action buttons */}
-        <div className="mt-5 flex items-center space-x-3">
+        <div className="mt-5 flex items-center space-x-2">
           <button
             onClick={handleCopyText}
             className="flex-1 py-2.5 rounded-xl font-semibold text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 transition cursor-pointer flex items-center justify-center space-x-1.5"
@@ -155,6 +189,15 @@ export const ShareCardModal: React.FC<ShareCardModalProps> = ({
                 <span>{isZh ? '复制文字战报' : 'Copy Text'}</span>
               </>
             )}
+          </button>
+
+          <button
+            onClick={handleExportPng}
+            disabled={exportState.kind === 'busy'}
+            className="flex-1 py-2.5 rounded-xl font-semibold text-xs bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 transition cursor-pointer flex items-center justify-center space-x-1.5"
+          >
+            <ImageIcon className="w-4 h-4" />
+            <span>{exportState.kind === 'busy' ? (isZh ? '导出中…' : 'Exporting…') : (isZh ? '导出 PNG' : 'Export PNG')}</span>
           </button>
 
           <button

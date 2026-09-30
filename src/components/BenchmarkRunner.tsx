@@ -7,32 +7,39 @@ import {
   CheckCircle2, 
   AlertCircle
 } from 'lucide-react';
-import { BenchmarkMetrics, OllamaModelDetail } from '../types';
+import { BenchmarkMetrics, RuntimeKind, RuntimeStatus } from '../types';
 
 interface BenchmarkRunnerProps {
-  ollamaOnline: boolean;
-  installedModels: OllamaModelDetail[];
+  runtimes: RuntimeStatus[];
+  selectedRuntime: RuntimeKind;
+  setSelectedRuntime: (r: RuntimeKind) => void;
   selectedModel: string;
   setSelectedModel: (m: string) => void;
-  onRunBenchmark: (modelName: string) => Promise<void>;
+  onRunBenchmark: (runtime: RuntimeKind, model: string) => void;
   benchmarking: boolean;
+  benchmarkingModel: string | null;
   latestBenchmark: BenchmarkMetrics | null;
-  onRefreshOllama: () => void;
+  onRefresh: () => void;
   lang: 'zh' | 'en';
 }
 
 export const BenchmarkRunner: React.FC<BenchmarkRunnerProps> = ({
-  ollamaOnline,
-  installedModels,
+  runtimes,
+  selectedRuntime,
+  setSelectedRuntime,
   selectedModel,
   setSelectedModel,
   onRunBenchmark,
   benchmarking,
+  benchmarkingModel,
   latestBenchmark,
-  onRefreshOllama,
+  onRefresh,
   lang,
 }) => {
   const isZh = lang === 'zh';
+  const current = runtimes.find((r) => r.kind === selectedRuntime);
+  const onlineRuntimes = runtimes.filter((r) => r.online);
+  const runtimeLabel = (id: RuntimeKind) => runtimes.find((r) => r.kind === id)?.label ?? id;
 
   return (
     <div className="glass-panel rounded-2xl p-5 md:p-6 shadow-xl border border-slate-800/80 relative overflow-hidden">
@@ -57,14 +64,14 @@ export const BenchmarkRunner: React.FC<BenchmarkRunnerProps> = ({
               </div>
               <p className="text-xs text-slate-400">
                 {isZh 
-                  ? '能实测就绝不靠猜 — 调用本机实际运行的推理引擎测算真实生成吞吐' 
-                  : 'Measure, don’t guess — invoke actual local runtime to test real tok/s'}
+                  ? '能实测就绝不靠猜 — 对本机任意在线运行时执行预热 + 3 次流式测量取中位数' 
+                  : 'Measure, don’t guess — warm-up + median of 3 streaming runs on any online runtime'}
               </p>
             </div>
           </div>
 
           <button
-            onClick={onRefreshOllama}
+            onClick={onRefresh}
             disabled={benchmarking}
             className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 text-xs text-slate-300 transition cursor-pointer self-start sm:self-auto"
           >
@@ -73,37 +80,66 @@ export const BenchmarkRunner: React.FC<BenchmarkRunnerProps> = ({
           </button>
         </div>
 
-        {/* Ollama Active View */}
-        {ollamaOnline ? (
+        {/* Runtime selector */}
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {runtimes.map((r) => {
+            const isSelected = r.kind === selectedRuntime;
+            return (
+              <button
+                key={r.kind}
+                onClick={() => setSelectedRuntime(r.kind)}
+                disabled={benchmarking}
+                className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+                  isSelected
+                    ? 'bg-slate-800 text-white border-slate-600 shadow-inner'
+                    : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:text-slate-200 hover:bg-slate-800'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${r.online ? 'bg-emerald-400' : 'bg-slate-600'}`}></span>
+                <span>{r.label}</span>
+                {r.online && (
+                  <span className="text-[10px] font-mono text-slate-500">
+                    {r.models.length} {isZh ? '个模型' : 'models'}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {current?.online ? (
           <div className="mt-5 space-y-5">
             {/* Model Select & Run Button */}
             <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               <div className="flex-1">
                 <label className="text-xs font-medium text-slate-400 block mb-1.5">
-                  {isZh ? '选择测试模型 (当前本机已下载):' : 'Select Installed Model:'}
+                  {isZh ? `选择测试模型（${current.label}）:` : `Select Model (${current.label}):`}
                 </label>
-                {installedModels.length > 0 ? (
+                {current.models.length > 0 ? (
                   <select
                     value={selectedModel}
                     onChange={(e) => setSelectedModel(e.target.value)}
                     disabled={benchmarking}
                     className="w-full sm:max-w-md px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm font-mono text-white focus:outline-none focus:border-cyan-500 transition"
                   >
-                    {installedModels.map((m) => (
-                      <option key={m.name} value={m.name}>
-                        {m.name} ({m.details.parameter_size || ''} {m.details.quantization_level || ''})
+                    {current.models.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.display}
+                        {m.quant ? ` · ${m.quant}` : ''}
                       </option>
                     ))}
                   </select>
                 ) : (
                   <p className="text-xs text-amber-400">
-                    {isZh ? 'Ollama 已就绪，但尚未下载任何模型。可打开终端运行 ollama run qwen2.5:7b 下载。' : 'Ollama is online but has no downloaded models yet.'}
+                    {isZh 
+                      ? `${current.label} 在线，但没有发现可用模型。`
+                      : `${current.label} is online but reports no models.`}
                   </p>
                 )}
               </div>
 
               <button
-                onClick={() => onRunBenchmark(selectedModel)}
+                onClick={() => onRunBenchmark(selectedRuntime, selectedModel)}
                 disabled={benchmarking || !selectedModel}
                 className={`px-5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center space-x-2 transition cursor-pointer shadow-lg active:scale-95 ${
                   benchmarking
@@ -126,14 +162,18 @@ export const BenchmarkRunner: React.FC<BenchmarkRunnerProps> = ({
             </div>
 
             {/* In-Progress Testing Banner */}
-            {benchmarking && (
+            {benchmarking && benchmarkingModel && (
               <div className="p-4 rounded-xl bg-cyan-950/30 border border-cyan-500/30 text-center animate-pulse">
                 <div className="flex items-center justify-center space-x-2 text-cyan-300 font-medium text-sm">
                   <Gauge className="w-5 h-5 animate-spin-slow" />
-                  <span>{isZh ? `正在向 ${selectedModel} 发送标准评估提示词并测量 TTFT 与生成速度...` : `Testing ${selectedModel}...`}</span>
+                  <span>
+                    {isZh
+                      ? `正在通过 ${runtimeLabel(selectedRuntime)} 测试 ${benchmarkingModel}（预热 + 3 次测量）...`
+                      : `Testing ${benchmarkingModel} via ${runtimeLabel(selectedRuntime)} (warm-up + 3 runs)...`}
+                  </span>
                 </div>
                 <p className="text-xs text-slate-400 mt-1">
-                  {isZh ? '提示：首次运行将先进行显存权重预热，预计耗时 3~10 秒' : 'Warm-up phase in progress, please wait...'}
+                  {isZh ? '首次运行会先加载模型（预热不计入成绩），预计耗时 10~60 秒' : 'The warm-up run absorbs model loading; expect 10~60s'}
                 </p>
               </div>
             )}
@@ -147,8 +187,16 @@ export const BenchmarkRunner: React.FC<BenchmarkRunnerProps> = ({
                     <span className="text-xs font-bold text-white font-mono">
                       {latestBenchmark.model}
                     </span>
+                    <span className="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700">
+                      {runtimeLabel(latestBenchmark.runtime)}
+                    </span>
                     <span className="text-[10px] text-slate-500 font-mono">
                       {new Date(latestBenchmark.timestamp).toLocaleTimeString()}
+                    </span>
+                    <span className="text-[10px] text-cyan-400/90 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20 font-medium">
+                      {isZh
+                        ? `中位数 · ${latestBenchmark.runsCompleted} 次实测`
+                        : `Median · ${latestBenchmark.runsCompleted} runs`}
                     </span>
                   </div>
                   <span className="text-[11px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-medium">
@@ -166,6 +214,9 @@ export const BenchmarkRunner: React.FC<BenchmarkRunnerProps> = ({
                     <div className="text-xl font-bold font-mono text-cyan-400">
                       {latestBenchmark.generationTokPerSec} <span className="text-xs text-slate-400 font-normal">tok/s</span>
                     </div>
+                    <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                      {latestBenchmark.generationMinTokPerSec} ~ {latestBenchmark.generationMaxTokPerSec} tok/s
+                    </div>
                   </div>
 
                   {/* Prompt Processing tok/s */}
@@ -174,7 +225,14 @@ export const BenchmarkRunner: React.FC<BenchmarkRunnerProps> = ({
                       {isZh ? 'Prompt 预处理速度' : 'Prompt Processing'}
                     </span>
                     <div className="text-xl font-bold font-mono text-blue-400">
-                      {latestBenchmark.promptEvalTokPerSec} <span className="text-xs text-slate-400 font-normal">tok/s</span>
+                      {latestBenchmark.promptEvalTokPerSec > 0
+                        ? latestBenchmark.promptEvalTokPerSec
+                        : '—'} <span className="text-xs text-slate-400 font-normal">tok/s</span>
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                      {latestBenchmark.promptEvalTokPerSec > 0
+                        ? isZh ? '由运行时计时' : 'server-timed'
+                        : isZh ? '该运行时未提供' : 'not exposed'}
                     </div>
                   </div>
 
@@ -186,6 +244,9 @@ export const BenchmarkRunner: React.FC<BenchmarkRunnerProps> = ({
                     <div className="text-xl font-bold font-mono text-emerald-400">
                       {latestBenchmark.ttftSec} <span className="text-xs text-slate-400 font-normal">s</span>
                     </div>
+                    <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                      {latestBenchmark.ttftMinSec} ~ {latestBenchmark.ttftMaxSec} s
+                    </div>
                   </div>
 
                   {/* Total tokens */}
@@ -195,6 +256,9 @@ export const BenchmarkRunner: React.FC<BenchmarkRunnerProps> = ({
                     </span>
                     <div className="text-xl font-bold font-mono text-slate-200">
                       {latestBenchmark.totalDurationSec} <span className="text-xs text-slate-400 font-normal">s</span>
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                      {latestBenchmark.totalTokens} tokens
                     </div>
                   </div>
                 </div>
@@ -214,33 +278,32 @@ export const BenchmarkRunner: React.FC<BenchmarkRunnerProps> = ({
             )}
           </div>
         ) : (
-          /* Ollama Offline Guidance */
-          <div className="mt-5 p-5 rounded-xl bg-slate-900/40 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          /* Offline Guidance */
+          <div className="mt-5 p-5 rounded-xl bg-slate-900/40 border border-slate-800">
             <div className="flex items-start space-x-3">
               <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-              <div>
+              <div className="space-y-2">
                 <h4 className="text-sm font-semibold text-white">
-                  {isZh ? '未检测到正在运行的 Ollama' : 'Ollama is not running locally'}
+                  {onlineRuntimes.length === 0
+                    ? (isZh ? '未检测到任何在线运行时' : 'No local runtime detected')
+                    : (isZh ? `${current?.label} 未启动` : `${current?.label} is not running`)}
                 </h4>
-                <p className="text-xs text-slate-400 mt-1 max-w-xl">
-                  {isZh 
-                    ? '已为您提供精准的理论数学兼容性测算。若想进行真实实机跑分，请在终端启动 Ollama：'
-                    : 'Theoretical compatibility calculations are active. To run live hardware benchmarks, start Ollama:'}
+                <ul className="space-y-1.5 text-xs">
+                  {runtimes.map((r) => (
+                    <li key={r.kind} className="flex items-center space-x-2">
+                      <span className={`w-1.5 h-1.5 rounded-full ${r.online ? 'bg-emerald-400' : 'bg-slate-600'}`}></span>
+                      <span className="text-slate-300 w-20 shrink-0">{r.label}</span>
+                      <code className="px-2 py-0.5 rounded-md bg-black font-mono text-[11px] text-cyan-300 border border-slate-800">
+                        {r.detail || r.baseUrl}
+                      </code>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-xs text-slate-400">
+                  {isZh ? '启动后点击「刷新状态」。理论兼容性测算不受影响，始终可用。' : 'Start one, then hit Refresh. Theoretical compatibility keeps working regardless.'}
                 </p>
-                <div className="mt-2 inline-block px-3 py-1 rounded-md bg-black font-mono text-xs text-cyan-300 border border-slate-800">
-                  ollama serve
-                </div>
               </div>
             </div>
-
-            <a
-              href="https://ollama.com/download"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition shrink-0"
-            >
-              {isZh ? '下载 Ollama 客户端' : 'Download Ollama'}
-            </a>
           </div>
         )}
       </div>

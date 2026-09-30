@@ -18,6 +18,10 @@ export interface GpuInfo {
   isUnifiedMemory: boolean;
   metalSupport: string;
   vramGb: number;
+  /** nvidia | amd | intel | apple | unknown */
+  vendor: string;
+  /** Driver version when the runtime exposes one (NVML / WMI). */
+  driverVersion: string | null;
 }
 
 export interface HardwareSpecs {
@@ -43,11 +47,11 @@ export interface AIModelDefinition {
   maxContextLength: number; // e.g., 32768
   layers: number;
   heads: number;
-  kvHeads?: number; // Grouped-Query Attention (GQA)
+  kvHeads?: number | null; // Grouped-Query Attention (GQA)
   headDim: number;
   description: string;
   recommendedUse: string;
-  ollamaName?: string;
+  ollamaName?: string | null;
 }
 
 export type CompatibilityStatus = 'recommended' | 'runnable' | 'not-recommended' | 'incompatible';
@@ -66,6 +70,16 @@ export interface CompatibilityReport {
   headline: string;
   advice: string;
   canOffloadToGpu: boolean;
+  /** vram | ram | context | none — what actually limits this model. */
+  bottleneck: string;
+}
+
+/**
+ * One model (fields flattened by the Rust engine) plus a
+ * CompatibilityReport per supported quantization.
+ */
+export interface ModelEvaluation extends AIModelDefinition {
+  reports: Partial<Record<QuantizationType, CompatibilityReport>>;
 }
 
 export interface OllamaModelDetail {
@@ -82,13 +96,61 @@ export interface OllamaModelDetail {
   };
 }
 
-export interface BenchmarkMetrics {
+export type RuntimeKind = 'ollama' | 'lmstudio' | 'llamaCpp';
+
+export interface RuntimeModel {
+  /** Identifier to send back to the runtime. */
+  id: string;
+  display: string;
+  quant: string | null;
+  sizeBytes: number | null;
+}
+
+export interface RuntimeStatus {
+  kind: RuntimeKind;
+  label: string;
+  online: boolean;
+  baseUrl: string;
+  models: RuntimeModel[];
+  /** Short error / offline hint for the UI. */
+  detail: string | null;
+}
+
+export interface HistoryEntry {
+  id: number;
+  /** Epoch milliseconds. */
+  createdAt: number;
+  runtime: string;
   model: string;
   ttftSec: number;
   promptEvalTokPerSec: number;
   generationTokPerSec: number;
   totalTokens: number;
   totalDurationSec: number;
+  runsCompleted: number;
+  /** One-line hardware description captured at run time. */
+  hardwareSummary: string;
+  /** Rows sharing a fingerprint ran on identical hardware. */
+  hardwareFingerprint: string;
+}
+
+export interface BenchmarkMetrics {
+  model: string;
+  /** Runtime id: ollama | lmstudio | llamaCpp. */
+  runtime: RuntimeKind;
+  ttftSec: number;
+  promptEvalTokPerSec: number;
+  generationTokPerSec: number;
+  totalTokens: number;
+  totalDurationSec: number;
   sampleOutput: string;
-  timestamp: string;
+  /** Epoch milliseconds (rendered via `new Date(ts)`). */
+  timestamp: number;
+  /** Medians are computed over this many measured runs (warm-up excluded). */
+  runsCompleted: number;
+  /** Min/max across measured runs — variance the UI can surface. */
+  ttftMinSec: number;
+  ttftMaxSec: number;
+  generationMinTokPerSec: number;
+  generationMaxTokPerSec: number;
 }

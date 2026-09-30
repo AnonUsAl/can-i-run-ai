@@ -294,39 +294,39 @@ Future infrastructure may include:
 
 ## 🚀 Development Roadmap
 
-### Phase 1 — MVP
+### Phase 1 — MVP ✅
 
-* [ ] macOS support
-* [ ] Apple Silicon detection
-* [ ] RAM detection
-* [ ] CPU detection
-* [ ] GPU detection
-* [ ] Basic model database
-* [ ] Compatibility calculation
-* [ ] Ollama detection
-* [ ] Basic benchmark
-* [ ] Modern desktop UI
+* [x] macOS support
+* [x] Apple Silicon detection
+* [x] RAM detection
+* [x] CPU detection
+* [x] GPU detection
+* [x] Basic model database
+* [x] Compatibility calculation
+* [x] Ollama detection
+* [x] Basic benchmark
+* [x] Modern desktop UI
 
-### Phase 2 — Cross-platform
+### Phase 2 — Cross-platform (in progress)
 
 * [ ] Intel Mac support
-* [ ] Windows support
-* [ ] NVIDIA GPU detection
-* [ ] CUDA detection
-* [ ] AMD GPU support
+* [x] Windows support
+* [x] NVIDIA GPU detection
+* [x] CUDA detection
+* [x] AMD GPU support (name + VRAM via DXGI)
 * [ ] Vulkan support
 
-### Phase 3 — Runtime Integration
+### Phase 3 — Runtime Integration (in progress)
 
-* [ ] LM Studio
-* [ ] llama.cpp
-* [ ] Automatic model discovery
+* [x] LM Studio
+* [x] llama.cpp
+* [x] Automatic model discovery
 * [ ] Model installation
 * [ ] Runtime management
 
 ### Phase 4 — Community Benchmark Database
 
-* [ ] Anonymous benchmark submission
+* [x] Anonymous benchmark submission (local export, opt-in — server deferred)
 * [ ] Hardware profiles
 * [ ] Model performance database
 * [ ] Hardware/model comparison

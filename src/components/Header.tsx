@@ -4,16 +4,16 @@ import { HardwareSpecs } from '../types';
 
 interface HeaderProps {
   hardware: HardwareSpecs | null;
-  ollamaOnline: boolean;
-  installedCount: number;
+  onlineRuntimeCount: number;
+  totalRuntimeCount: number;
   onOpenShareModal: () => void;
   lang: 'zh' | 'en';
   setLang: (lang: 'zh' | 'en') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  ollamaOnline,
-  installedCount,
+  onlineRuntimeCount,
+  totalRuntimeCount,
   onOpenShareModal,
   lang,
   setLang,
@@ -45,23 +45,25 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Status Indicators & Actions */}
         <div className="flex items-center space-x-3">
-          {/* Ollama Status Badge */}
+          {/* Runtime Status Badge */}
           <div className="hidden md:flex items-center space-x-2 px-3 py-1 rounded-lg bg-slate-900/90 border border-slate-800 text-xs">
-            {ollamaOnline ? (
+            {onlineRuntimeCount > 0 ? (
               <>
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
                 <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                <span className="text-slate-300 font-medium">Ollama:</span>
+                <span className="text-slate-300 font-medium">{lang === 'zh' ? '运行时:' : 'Runtimes:'}</span>
                 <span className="text-emerald-400 font-mono">
-                  {lang === 'zh' ? `已就绪 (${installedCount}个模型)` : `Ready (${installedCount} models)`}
+                  {lang === 'zh'
+                    ? `${onlineRuntimeCount}/${totalRuntimeCount} 在线`
+                    : `${onlineRuntimeCount}/${totalRuntimeCount} online`}
                 </span>
               </>
             ) : (
               <>
                 <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                <span className="text-slate-400">Ollama:</span>
+                <span className="text-slate-400">{lang === 'zh' ? '运行时:' : 'Runtimes:'}</span>
                 <span className="text-amber-400/90">
-                  {lang === 'zh' ? '未启动 (仅理论评估)' : 'Offline (Theoretical)'}
+                  {lang === 'zh' ? '未检测到（仅理论评估）' : 'none online (theoretical)'}
                 </span>
               </>
             )}
